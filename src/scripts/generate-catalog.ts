@@ -66,112 +66,9 @@ type ProductOut = {
   variants: VariantOut[];
 };
 
-const NATURAL_STONE_TYPE_MAP: Record<string, { subcategory: string; label: string }> = {
-  "Coping (Pool)": { subcategory: "copings", label: "Pool" },
-  "Coping (RF)": { subcategory: "copings", label: "Rock Face" },
-  "Coping (SC)": { subcategory: "copings", label: "Saw Cut" },
-  "Coping (RF - Reb.)": { subcategory: "copings", label: "Rebated" },
-  "Coping (Edge - RF)": { subcategory: "copings", label: "Edge" },
-  "Coping (Edge - SC)": { subcategory: "copings", label: "Edge Saw Cut" },
-  "Coping (Wall - RF)": { subcategory: "copings", label: "Wall" },
-  "Coping (Wall - SC)": { subcategory: "copings", label: "Wall Saw Cut" },
-  Curb: { subcategory: "curbs", label: "Curb" },
-  "Jumbo Slab": { subcategory: "bbq-slabs", label: "Jumbo Slab" },
-  Step: { subcategory: "steps", label: "Step" },
-  "Step (SC)": { subcategory: "steps", label: "Step Saw Cut" },
-  "Pier Cap": { subcategory: "pier-caps", label: "Pier Cap" },
-  Riser: { subcategory: "risers", label: "Riser" },
-  Tile: { subcategory: "tiles", label: "Tile" },
-  Walling: { subcategory: "walling-stone", label: "Walling" },
-  "Walling Corner": { subcategory: "walling-stone", label: "Walling Corner" },
-  "Walling Stone": { subcategory: "walling-stone", label: "Walling Stone" },
-  Cobblestones: { subcategory: "cobbles", label: "Cobblestone" },
-  "Cobble On Mat": { subcategory: "cobbles", label: "Cobble on Mat" },
-  "Paver/Cobble": { subcategory: "cobbles", label: "Paver/Cobble" },
-  Accessories: { subcategory: "turf", label: "Accessory" },
-  "Artificial Turf": { subcategory: "turf", label: "Roll" },
-  Pebbles: { subcategory: "pebbles", label: "Pebbles" },
-  Veneer: { subcategory: "veneer", label: "Veneer" },
-};
-
-function naturalStoneMapping(productType: string): { subcategory: string; label: string } {
-  if (productType.startsWith("Paver")) {
-    const thickness = productType.replace("Paver - ", "").trim();
-    return { subcategory: "pavers", label: thickness || "Paver" };
-  }
-
-  return NATURAL_STONE_TYPE_MAP[productType] ?? { subcategory: "pavers", label: productType };
-}
-
-const SUBCATEGORY_DISPLAY_NAME: Record<string, string> = {
-  copings: "Coping",
-  curbs: "Curb",
-  "bbq-slabs": "Jumbo Slab",
-  pavers: "Paver",
-  steps: "Step",
-  "pier-caps": "Pier Cap",
-  risers: "Riser",
-  tiles: "Tile",
-  "walling-stone": "Walling Stone",
-  cobbles: "Cobblestone",
-  turf: "Turf",
-  pebbles: "Pebbles",
-  veneer: "Veneer",
-};
-
 function lastDescriptionSegment(description: string): string {
   const parts = description.split(":");
   return parts[parts.length - 1].trim();
-}
-
-function buildNaturalStoneProducts(): ProductOut[] {
-  const rows = readTsv(join(rawDir, "stonearch-price-list.tsv"));
-  const grouped = new Map<string, ProductOut>();
-
-  for (const row of rows) {
-    const colour = row.Colour.trim();
-    const rawType = row.ProductType.trim();
-    const { subcategory, label } = naturalStoneMapping(rawType);
-    const isTurfAccessory = colour === "Artificial Turf";
-    const key = isTurfAccessory ? `${colour}__${subcategory}__${rawType}` : `${colour}__${subcategory}`;
-    const size = lastDescriptionSegment(row.Description);
-    const sqftPallet = Number.parseFloat(row.SqFtPallet);
-    const price = Number.parseFloat(row.SugTrade);
-
-    if (!Number.isFinite(price)) continue;
-
-    if (!grouped.has(key)) {
-      const displayName = isTurfAccessory
-        ? rawType === "Accessories"
-          ? "Artificial Turf Installation Accessories"
-          : "Artificial Turf"
-        : `${colour} ${SUBCATEGORY_DISPLAY_NAME[subcategory] ?? label}`.trim();
-
-      grouped.set(key, {
-        slug: slugify(`${colour}-${subcategory}-${isTurfAccessory ? rawType : ""}`),
-        name: displayName,
-        categorySlug: "natural-stone",
-        subcategorySlug: subcategory,
-        colorName: colour,
-        tone: inferTone(colour),
-        images: [],
-        variants: [],
-      });
-    }
-
-    const product = grouped.get(key)!;
-    const variantLabel = `${label} ${size}`.trim();
-
-    product.variants.push({
-      label: variantLabel,
-      size,
-      unit: row.Unit.trim() === "Lft" ? "lft" : row.Unit.trim() === "ea" ? "piece" : row.Unit.trim() === "ton" ? "ton" : "sqf",
-      price,
-      packSize: Number.isFinite(sqftPallet) && sqftPallet > 0 ? { coveragePerSkid: sqftPallet } : undefined,
-    });
-  }
-
-  return Array.from(grouped.values());
 }
 
 function buildPorcelainTileProducts(): ProductOut[] {
@@ -344,7 +241,6 @@ function buildInstallationExtraProducts(): ProductOut[] {
 }
 
 const allProducts = [
-  ...buildNaturalStoneProducts(),
   ...buildPorcelainTileProducts(),
   ...buildLCopingProducts(),
   ...buildPedestalProducts(),
