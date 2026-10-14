@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+
+# confidential supplier pricing data
+src/data/raw/
+src/data/product-catalog.seed.ts
