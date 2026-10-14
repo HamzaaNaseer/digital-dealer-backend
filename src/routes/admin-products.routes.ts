@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAdmin, requireAuth } from "../middleware/auth.middleware.js";
 import {
   Product,
+  type NaturalStoneVariantDocument,
   type ProductDocument,
   type ProductUnit,
   type ProductVariantDocument,
@@ -76,6 +77,7 @@ function parsePackSize(input: unknown): ProductVariantPackSize | undefined {
     "coveragePerSkid",
     "coveragePerPiece",
     "piecesPerBox",
+    "weightKg",
   ] as const) {
     const value = raw[key];
     if (typeof value === "number" && Number.isFinite(value)) {
@@ -98,7 +100,10 @@ function parseVariant(input: unknown): ProductVariantDocument | null {
     return null;
   }
 
-  return {
+  const kind = typeof raw.kind === "string" && raw.kind.trim() ? raw.kind.trim() : "standard";
+
+  const variant: ProductVariantDocument = {
+    kind,
     label: raw.label.trim(),
     size: typeof raw.size === "string" && raw.size.trim() ? raw.size.trim() : undefined,
     sizeMM:
@@ -116,6 +121,18 @@ function parseVariant(input: unknown): ProductVariantDocument | null {
         : undefined,
     isNewArrival: Boolean(raw.isNewArrival),
   };
+
+  if (kind === "natural-stone") {
+    const naturalStoneVariant = variant as NaturalStoneVariantDocument;
+    naturalStoneVariant.finish =
+      typeof raw.finish === "string" && raw.finish.trim() ? raw.finish.trim() : undefined;
+    naturalStoneVariant.edgeProfile =
+      typeof raw.edgeProfile === "string" && raw.edgeProfile.trim()
+        ? raw.edgeProfile.trim()
+        : undefined;
+  }
+
+  return variant;
 }
 
 type ProductPayload = {
