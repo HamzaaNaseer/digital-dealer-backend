@@ -8,9 +8,15 @@ export interface ProductVariantPackSize {
   coveragePerSkid?: number;
   coveragePerPiece?: number;
   piecesPerBox?: number;
+  weightKg?: number;
 }
 
+// Fields every variant has, regardless of category. Category-specific fields
+// are added via an embedded array discriminator on `variants` below (keyed
+// by `kind`), so e.g. Natural Stone variants can carry extra fields without
+// touching Porcelain/Installation Systems/Accessories variants at all.
 export interface ProductVariantDocument {
+  kind: string;
   label: string;
   size?: string;
   sizeMM?: string;
@@ -21,6 +27,12 @@ export interface ProductVariantDocument {
   discountPercent?: number;
   discountThreshold?: number;
   isNewArrival?: boolean;
+}
+
+export interface NaturalStoneVariantDocument extends ProductVariantDocument {
+  kind: "natural-stone";
+  finish?: string;
+  edgeProfile?: string;
 }
 
 export interface ProductDocument {
@@ -45,6 +57,7 @@ const productVariantPackSizeSchema = new Schema<ProductVariantPackSize>(
     coveragePerSkid: { type: Number, min: 0 },
     coveragePerPiece: { type: Number, min: 0 },
     piecesPerBox: { type: Number, min: 0 },
+    weightKg: { type: Number, min: 0 },
   },
   { _id: false }
 );
@@ -66,7 +79,7 @@ const productVariantSchema = new Schema<ProductVariantDocument>(
     discountThreshold: { type: Number, min: 0 },
     isNewArrival: { type: Boolean, default: false },
   },
-  { _id: false }
+  { _id: false, discriminatorKey: "kind" }
 );
 
 const productSchema = new Schema<ProductDocument>(
@@ -113,5 +126,21 @@ const productSchema = new Schema<ProductDocument>(
 );
 
 productSchema.index({ categoryId: 1, subcategoryId: 1, name: 1 });
+
+const variantsPath = productSchema.path(
+  "variants"
+) as unknown as Schema.Types.DocumentArray;
+
+const naturalStoneVariantSchema = new Schema<
+  Pick<NaturalStoneVariantDocument, "finish" | "edgeProfile">
+>(
+  {
+    finish: { type: String, trim: true },
+    edgeProfile: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
+variantsPath.discriminator("natural-stone", naturalStoneVariantSchema);
 
 export const Product = model<ProductDocument>("Product", productSchema);
