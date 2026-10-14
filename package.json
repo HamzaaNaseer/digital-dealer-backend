@@ -7,13 +7,13 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "dev": "node init && tsx watch src/index.ts",
+    "build": "node init && tsc",
     "heroku-postbuild": "npm run build",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:categories": "tsx src/scripts/seed-categories.ts",
     "seed:products": "tsx src/scripts/seed-products.ts",
-    "start": "node dist/index.js",
+    "start": "node init && node dist/index.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.3",
+    "node-fetch": "^3.3.2",
     "resend": "^6.19.0"
   },
   "devDependencies": {
